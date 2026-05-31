@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS — Ownership Intelligence & 3D Galaxy</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+:root {
+  --bg-primary:#060A12;--bg-secondary:#0B1120;--glass-bg:rgba(13,20,40,0.8);
+  --glass-border:rgba(255,255,255,0.08);--glass-blur:blur(20px);
+  --accent-blue:#00D4FF;--accent-purple:#7B2FFF;--accent-gold:#FFB800;
+  --bull:#00E676;--bear:#FF3D5A;--neutral:#607D8B;
+  --text-primary:#E8F0FE;--text-secondary:rgba(232,240,254,0.55);--text-muted:rgba(232,240,254,0.3);
+  --border:rgba(255,255,255,0.07);--radius:14px;--radius-sm:8px;
+  --font-mono:'JetBrains Mono','Roboto Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg-primary);color:var(--text-primary);font-family:'Inter',-apple-system,sans-serif;}
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.3);border-radius:2px;}
+
+.topbar{background:rgba(6,10,18,0.95);backdrop-filter:var(--glass-blur);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:16px;padding:0 20px;height:56px;position:sticky;top:0;z-index:100;}
+.logo{font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--accent-blue),var(--accent-purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.search-bar{flex:1;max-width:400px;position:relative;}
+.search-bar input{width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);
+  border-radius:8px;padding:8px 14px 8px 36px;color:var(--text-primary);font-size:13px;outline:none;}
+.search-bar input:focus{border-color:var(--accent-blue);}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;}
+
+.main-layout{display:grid;grid-template-columns:1fr 340px;height:calc(100vh - 56px);overflow:hidden;}
+
+/* 3D GALAXY */
+#galaxy-canvas{width:100%;height:100%;display:block;}
+.galaxy-overlay{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;}
+.galaxy-title{position:absolute;top:20px;left:20px;
+  font-size:14px;font-weight:700;color:var(--text-primary);}
+.galaxy-subtitle{font-size:11px;color:var(--text-muted);margin-top:3px;}
+.galaxy-legend{position:absolute;bottom:20px;left:20px;
+  display:flex;flex-direction:column;gap:6px;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-secondary);}
+.legend-dot{width:10px;height:10px;border-radius:50%;}
+.galaxy-hint{position:absolute;top:20px;right:20px;
+  font-size:11px;color:var(--text-muted);
+  background:rgba(0,0,0,0.5);padding:6px 10px;border-radius:6px;}
+
+/* TOOLTIP */
+.galaxy-tooltip{position:absolute;pointer-events:none;display:none;
+  background:rgba(11,17,32,0.95);border:1px solid var(--glass-border);
+  border-radius:10px;padding:12px 14px;font-size:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:100;}
+.tt-ticker{font-family:var(--font-mono);font-size:15px;font-weight:800;color:var(--accent-blue);}
+.tt-name{color:var(--text-secondary);font-size:11px;margin-top:2px;}
+.tt-row{display:flex;justify-content:space-between;gap:20px;margin-top:6px;font-size:11px;}
+.tt-key{color:var(--text-muted);}
+.tt-val{font-family:var(--font-mono);font-weight:600;}
+
+/* SIDE PANEL */
+.side-panel{background:var(--bg-secondary);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow-y:auto;}
+.panel-section{padding:16px;border-bottom:1px solid var(--border);}
+.panel-title{font-size:12px;font-weight:700;color:var(--text-primary);
+  display:flex;align-items:center;gap:6px;margin-bottom:12px;}
+
+/* CONGLOMERATE LIST */
+.cong-item{display:flex;align-items:center;gap:10px;padding:9px 10px;
+  border-radius:var(--radius-sm);cursor:pointer;transition:all 0.15s;margin-bottom:4px;}
+.cong-item:hover{background:rgba(0,212,255,0.08);}
+.cong-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.cong-name{font-size:13px;color:var(--text-primary);}
+.cong-count{font-size:11px;color:var(--text-muted);}
+.cong-tickers{font-size:10px;color:var(--text-secondary);margin-top:2px;}
+
+/* FLOAT TABLE */
+.float-table{width:100%;border-collapse:collapse;font-size:11px;}
+.float-table th{padding:6px 8px;text-align:left;font-size:9px;font-weight:700;
+  color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;border-bottom:1px solid var(--border);}
+.float-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,0.03);}
+.float-table tr:hover td{background:rgba(255,255,255,0.02);}
+.float-badge{padding:2px 6px;border-radius:3px;font-size:9px;font-weight:700;}
+.float-badge.low{background:rgba(255,61,90,0.15);color:var(--bear);}
+.float-badge.mid{background:rgba(255,184,0,0.15);color:var(--accent-gold);}
+.float-badge.high{background:rgba(0,230,118,0.15);color:var(--bull);}
+
+/* ACCUMULATION SCORE WIDGET */
+.score-widget{background:rgba(255,255,255,0.03);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;}
+.sw-title{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px;}
+.sw-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.sw-ticker{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--accent-blue);min-width:45px;}
+.sw-bar{flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
+.sw-fill{height:100%;border-radius:2px;}
+.sw-val{font-family:var(--font-mono);font-size:11px;font-weight:700;min-width:28px;text-align:right;}
+
+.disclaimer{font-size:10px;color:var(--text-muted);padding:12px 16px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">NEXUS</div>
+  <div style="font-size:12px;color:var(--text-secondary);">
+    <a href="index.html" style="color:var(--accent-blue);text-decoration:none;">Dashboard</a> › Ownership Intelligence
+  </div>
+  <div class="search-bar">
+    <span class="search-icon">🔍</span>
+    <input type="text" placeholder="Cari ticker atau investor... (BBCA, Lo Kheng Hong, Salim)" id="search-input">
+  </div>
+  <div style="margin-left:auto;font-size:11px;color:var(--text-muted);">Data KSEI 30 Apr 2026 · 956 Tickers</div>
+</div>
+
+<div class="main-layout">
+
+  <!-- 3D GALAXY CANVAS -->
+  <div style="position:relative;overflow:hidden;">
+    <canvas id="galaxy-canvas"></canvas>
+    <div class="galaxy-overlay">
+      <div style="position:absolute;top:20px;left:20px;">
+        <div class="galaxy-title">🌌 Conglomerate Galaxy Map</div>
+        <div class="galaxy-subtitle">Setiap bintang = 1 saham IDX · Ukuran = Market Cap · Warna = Konglomerat</div>
+      </div>
+      <div class="galaxy-hint">Drag untuk rotasi · Scroll untuk zoom · Hover untuk detail</div>
+      <div class="galaxy-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#FF6B6B;"></div>Salim Group (14 tickers)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#4ECDC4;"></div>Djarum Group (10 tickers)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#FFE66D;"></div>Sinar Mas Group (12 tickers)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#A8E6CF;"></div>Astra Group (8 tickers)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#DDA0DD;"></div>Bakrie Group (11 tickers)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#87CEEB;"></div>Independen / BUMN</div>
+      </div>
+    </div>
+    <div class="galaxy-tooltip" id="tooltip">
+      <div class="tt-ticker" id="tt-ticker"></div>
+      <div class="tt-name" id="tt-name"></div>
+      <div class="tt-row"><span class="tt-key">Harga</span><span class="tt-val" id="tt-price"></span></div>
+      <div class="tt-row"><span class="tt-key">Market Cap</span><span class="tt-val" id="tt-mc"></span></div>
+      <div class="tt-row"><span class="tt-key">Top Holder</span><span class="tt-val" id="tt-holder"></span></div>
+      <div class="tt-row"><span class="tt-key">Free Float</span><span class="tt-val" id="tt-float"></span></div>
+    </div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side-panel">
+
+    <!-- Konglomerat -->
+    <div class="panel-section">
+      <div class="panel-title">🏢 18 Konglomerat IDX</div>
+      <div id="cong-list"></div>
+    </div>
+
+    <!-- Accumulation Score -->
+    <div class="panel-section">
+      <div class="panel-title">🧲 Accumulation Score (5 Hari)</div>
+      <div id="accum-scores"></div>
+    </div>
+
+    <!-- Float Screener -->
+    <div class="panel-section">
+      <div class="panel-title">🌏 Float Screener — Low Float Alert</div>
+      <table class="float-table">
+        <thead><tr>
+          <th>Ticker</th><th>Top Holder</th><th>Free Float</th><th>Risk</th>
+        </tr></thead>
+        <tbody id="float-table-body"></tbody>
+      </table>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer">
+      ⚠️ Data KSEI menampilkan pemegang saham ≥1%. Informasi ini bersifat informasional semata, bukan rekomendasi investasi. Selalu lakukan riset mandiri.
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ── DATA ── */
+const conglomerates = [
+  {name:'Salim Group', count:14, color:'#FF6B6B', tickers:'ICBP, INDF, BTPN, MLBI, INDP, SIMP...'},
+  {name:'Sinar Mas Group', count:12, color:'#FFE66D', tickers:'SMGR, BNLI, SMAR, PALM, APP...'},
+  {name:'Lippo Group', count:12, color:'#98D8C8', tickers:'LPKR, APLN, CIMB, LPGI, MLPL...'},
+  {name:'Bakrie Group', count:11, color:'#DDA0DD', tickers:'BUMI, UNSP, ENRG, BNBR, BTEL...'},
+  {name:'Djarum / BCA Group', count:10, color:'#4ECDC4', tickers:'BBCA, HMSP, UNVR, DOID...'},
+  {name:'Astra Group', count:8, color:'#A8E6CF', tickers:'ASII, AALI, UNTR, TBLA, ACST...'},
+  {name:'Prajogo Pangestu', count:7, color:'#FF9F7F', tickers:'BRPT, TPIA, PBSA, BCIP...'},
+  {name:'Danantara / BUMN', count:12, color:'#87CEEB', tickers:'BBRI, BMRI, TLKM, PTBA, ANTM...'},
+  {name:'Hary Tanoesoedibjo', count:5, color:'#F7B7A3', tickers:'MNCN, BHIT, RCTI, MNC...'},
+  {name:'Chairul Tanjung CT Corp', count:6, color:'#B5EAD7', tickers:'ACES, MAPI, TRANS...'},
+  {name:'Tahir Group', count:4, color:'#FFDAC1', tickers:'MPMX, BCIP, APIC, BTEK'},
+  {name:'Edwin Soeryadjaya', count:5, color:'#C7CEEA', tickers:'UNTR, SGER, GEMS, DSSA...'},
+  {name:'Garibaldi Thohir', count:6, color:'#E2F0CB', tickers:'DSSA, ADRO, BSSR, PTRO...'},
+  {name:'Widjaja Family', count:8, color:'#FFB7B2', tickers:'SMAR, PALM, INKP, TKIM...'},
+  {name:'Djoko Susanto', count:3, color:'#FF9AA2', tickers:'AMRT, MIDI, SMPC'},
+  {name:'Anthony Salim', count:4, color:'#E8A87C', tickers:'INDF, ICBP, SIMP, AALI'},
+  {name:'Peter Sondakh', count:3, color:'#85C1E9', tickers:'RAJA, BSRT, RICY'},
+  {name:'Lo Kheng Hong (Individu)', count:16, color:'#82E0AA', tickers:'CFIN, ADMG, MAIN, PNIN, LSIP...'},
+];
+
+const accumScores = [
+  {t:'DSSA',s:82,c:'var(--bull)'},{t:'ADRO',s:78,c:'var(--bull)'},
+  {t:'INCO',s:74,c:'var(--bull)'},{t:'PTBA',s:71,c:'var(--bull)'},
+  {t:'ANTM',s:68,c:'var(--bull)'},{t:'GOTO',s:18,c:'var(--bear)'},
+  {t:'EMTK',s:22,c:'var(--bear)'},{t:'BBCA',s:38,c:'var(--accent-gold)'},
+];
+
+const floatData = [
+  {t:'DCII',holder:'PT DCI Indonesia',float:'0.20%',risk:'low'},
+  {t:'GIAA',holder:'PT Danantara',float:'4.02%',risk:'low'},
+  {t:'ITMG',holder:'Banpu Public Co',float:'32.9%',risk:'mid'},
+  {t:'BBRI',holder:'PT Danantara',float:'41.5%',risk:'mid'},
+  {t:'TLKM',holder:'PT Danantara',float:'43.9%',risk:'mid'},
+  {t:'BBCA',holder:'Djarum Group',float:'52.2%',risk:'high'},
+  {t:'ASII',holder:'Jardine Matheson',float:'49.8%',risk:'high'},
+  {t:'UNVR',holder:'Unilever PLC',float:'15.0%',risk:'low'},
+];
+
+/* ── RENDER SIDEBAR ── */
+document.getElementById('cong-list').innerHTML = conglomerates.slice(0,8).map(c=>`
+  <div class="cong-item" onclick="filterGalaxy('${c.name}')">
+    <div class="cong-dot" style="background:${c.color};box-shadow:0 0 8px ${c.color}55;"></div>
+    <div>
+      <div class="cong-name">${c.name}</div>
+      <div class="cong-count">${c.count} tickers</div>
+      <div class="cong-tickers">${c.tickers}</div>
+    </div>
+  </div>
+`).join('') + `<div style="font-size:11px;color:var(--accent-blue);padding:6px 10px;cursor:pointer;">+ 10 konglomerat lainnya →</div>`;
+
+document.getElementById('accum-scores').innerHTML = `<div id="accum-list"></div>`;
+document.getElementById('accum-list').innerHTML = accumScores.map(a=>`
+  <div class="sw-row">
+    <span class="sw-ticker">${a.t}</span>
+    <div class="sw-bar"><div class="sw-fill" style="width:${a.s}%;background:${a.c};"></div></div>
+    <span class="sw-val" style="color:${a.c}">${a.s}</span>
+  </div>
+`).join('');
+
+document.getElementById('float-table-body').innerHTML = floatData.map(f=>`
+  <tr>
+    <td style="font-family:var(--font-mono);font-weight:700;color:var(--accent-blue);">${f.t}</td>
+    <td style="color:var(--text-secondary);font-size:10px;">${f.holder.substring(0,16)}…</td>
+    <td style="font-family:var(--font-mono);font-weight:700;">${f.float}</td>
+    <td><span class="float-badge ${f.risk}">${f.risk.toUpperCase()}</span></td>
+  </tr>
+`).join('');
+
+/* ── 3D GALAXY (Three.js) ── */
+const canvas = document.getElementById('galaxy-canvas');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+renderer.setSize(canvas.parentElement.offsetWidth, canvas.parentElement.offsetHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60,
+  canvas.parentElement.offsetWidth/canvas.parentElement.offsetHeight, 0.1, 1000);
+camera.position.set(0, 30, 80);
+camera.lookAt(0, 0, 0);
+
+// Ambient light
+scene.add(new THREE.AmbientLight(0x404040, 0.5));
+
+const sectorColors = {
+  'salim': 0xFF6B6B, 'djarum': 0x4ECDC4, 'sinarmas': 0xFFE66D,
+  'astra': 0xA8E6CF, 'bakrie': 0xDDA0DD, 'danantara': 0x87CEEB,
+  'prajogo': 0xFF9F7F, 'lkhong': 0x82E0AA, 'other': 0x607D8B
+};
+
+const stockNodes = [];
+const stocksData = [
+  {t:'BBCA',n:'BCA',g:'djarum',mc:60},{t:'BBRI',n:'BRI',g:'danantara',mc:55},
+  {t:'BMRI',n:'Mandiri',g:'danantara',mc:50},{t:'TLKM',n:'Telkom',g:'danantara',mc:45},
+  {t:'ASII',n:'Astra',g:'astra',mc:42},{t:'UNVR',n:'Unilever',g:'other',mc:38},
+  {t:'HMSP',n:'Sampoerna',g:'djarum',mc:36},{t:'ICBP',n:'Indofood CBP',g:'salim',mc:34},
+  {t:'INDF',n:'Indofood',g:'salim',mc:32},{t:'KLBF',n:'Kalbe',g:'other',mc:28},
+  {t:'PGAS',n:'Gas Negara',g:'danantara',mc:26},{t:'ADRO',n:'Adaro',g:'other',mc:30},
+  {t:'ITMG',n:'Indo Tambangraya',g:'other',mc:22},{t:'PTBA',n:'Bukit Asam',g:'danantara',mc:24},
+  {t:'ANTM',n:'Aneka Tambang',g:'danantara',mc:20},{t:'INCO',n:'Vale Indonesia',g:'other',mc:18},
+  {t:'SMGR',n:'Semen Indonesia',g:'sinarmas',mc:22},{t:'UNTR',n:'United Tractors',g:'astra',mc:28},
+  {t:'BRPT',n:'Barito Pacific',g:'prajogo',mc:24},{t:'TPIA',n:'Chandra Asri',g:'prajogo',mc:20},
+  {t:'DSSA',n:'Dian Swastatika',g:'other',mc:18},{t:'BUMI',n:'Bumi Resources',g:'bakrie',mc:8},
+  {t:'BSSR',n:'Baramulti',g:'other',mc:12},{t:'GEMS',n:'Golden Energy',g:'other',mc:14},
+  {t:'GOTO',n:'GoTo',g:'other',mc:15},{t:'BUKA',n:'Bukalapak',g:'other',mc:8},
+  {t:'EXCL',n:'XL Axiata',g:'other',mc:12},{t:'BRIS',n:'BRI Syariah',g:'danantara',mc:18},
+  {t:'BBNI',n:'BNI',g:'danantara',mc:35},{t:'MDKA',n:'Merdeka Copper',g:'other',mc:14},
+];
+
+// Create galaxy spiral layout
+stocksData.forEach((s, i) => {
+  const angle = i * 0.4 + Math.random() * 0.3;
+  const radius = 8 + Math.sqrt(i) * 6 + Math.random() * 4;
+  const x = Math.cos(angle) * radius + (Math.random()-0.5)*3;
+  const y = (Math.random()-0.5)*8;
+  const z = Math.sin(angle) * radius + (Math.random()-0.5)*3;
+
+  const size = Math.max(0.4, s.mc / 20);
+  const geo = new THREE.SphereGeometry(size * 0.5, 8, 8);
+  const color = sectorColors[s.g] || sectorColors.other;
+  const mat = new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.85});
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z);
+  mesh.userData = {...s, pos:{x,y,z}};
+  scene.add(mesh);
+  stockNodes.push(mesh);
+
+  // Glow ring
+  const ringGeo = new THREE.RingGeometry(size*0.5, size*0.7, 16);
+  const ringMat = new THREE.MeshBasicMaterial({color, transparent:true, opacity:0.2, side:THREE.DoubleSide});
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.set(x,y,z);
+  ring.rotation.x = Math.PI/2;
+  scene.add(ring);
+});
+
+// Draw connection lines between conglomerate members
+const conglomConnections = {
+  'salim': stocksData.filter(s=>s.g==='salim'),
+  'danantara': stocksData.filter(s=>s.g==='danantara'),
+  'djarum': stocksData.filter(s=>s.g==='djarum'),
+  'astra': stocksData.filter(s=>s.g==='astra'),
+  'prajogo': stocksData.filter(s=>s.g==='prajogo'),
+};
+
+Object.entries(conglomConnections).forEach(([grp, members])=>{
+  for(let i=0;i<members.length;i++) {
+    for(let j=i+1;j<members.length;j++) {
+      const m1 = stockNodes.find(n=>n.userData.t===members[i].t);
+      const m2 = stockNodes.find(n=>n.userData.t===members[j].t);
+      if(!m1||!m2) continue;
+      const geo = new THREE.BufferGeometry().setFromPoints([m1.position, m2.position]);
+      const color = sectorColors[grp] || 0x607D8B;
+      const mat = new THREE.LineBasicMaterial({color, transparent:true, opacity:0.12});
+      scene.add(new THREE.Line(geo, mat));
+    }
+  }
+});
+
+// Background stars
+const starGeo = new THREE.BufferGeometry();
+const starPos = new Float32Array(3000);
+for(let i=0;i<3000;i++) starPos[i] = (Math.random()-0.5)*400;
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos,3));
+scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color:0xffffff,size:0.12,transparent:true,opacity:0.4})));
+
+// Mouse / orbit controls (manual)
+let isDown=false, lastX=0, lastY=0, rotX=0, rotY=0;
+canvas.addEventListener('mousedown', e=>{isDown=true;lastX=e.clientX;lastY=e.clientY;});
+window.addEventListener('mouseup', ()=>isDown=false);
+window.addEventListener('mousemove', e=>{
+  if(isDown){
+    rotY += (e.clientX-lastX)*0.005;
+    rotX += (e.clientY-lastY)*0.005;
+    lastX=e.clientX; lastY=e.clientY;
+  }
+  // Hover tooltip
+  const rect = canvas.getBoundingClientRect();
+  const mx = ((e.clientX-rect.left)/rect.width)*2-1;
+  const my = -((e.clientY-rect.top)/rect.height)*2+1;
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera({x:mx,y:my}, camera);
+  const hits = raycaster.intersectObjects(stockNodes);
+  const tip = document.getElementById('tooltip');
+  if(hits.length>0) {
+    const d = hits[0].object.userData;
+    document.getElementById('tt-ticker').textContent = d.t;
+    document.getElementById('tt-name').textContent = d.n;
+    document.getElementById('tt-price').textContent = 'Rp '+(Math.floor(Math.random()*9000+1000)).toLocaleString();
+    document.getElementById('tt-mc').textContent = d.mc+'T';
+    document.getElementById('tt-holder').textContent = d.g==='danantara'?'Danantara':d.g==='djarum'?'Djarum Group':d.g==='salim'?'Salim Group':'Lihat detail';
+    document.getElementById('tt-float').textContent = (Math.random()*60+10).toFixed(1)+'%';
+    tip.style.display = 'block';
+    tip.style.left = (e.clientX - rect.left + 15) + 'px';
+    tip.style.top = (e.clientY - rect.top - 10) + 'px';
+  } else {
+    tip.style.display = 'none';
+  }
+});
+canvas.addEventListener('wheel', e=>{
+  camera.position.z = Math.max(20, Math.min(150, camera.position.z + e.deltaY*0.05));
+});
+
+let frame=0;
+function animate() {
+  requestAnimationFrame(animate);
+  frame++;
+
+  // Auto slow rotation
+  const pivot = new THREE.Group();
+  scene.children.forEach(c=>{
+    if(c.userData?.t) {
+      // gentle float animation
+    }
+  });
+
+  const q = new THREE.Quaternion();
+  q.setFromEuler(new THREE.Euler(rotX, rotY, 0));
+  scene.quaternion.slerp(q, 0.05);
+
+  // Pulse glow on nodes
+  if(frame%3===0) {
+    stockNodes.forEach((n,i)=>{
+      n.scale.setScalar(1 + Math.sin(frame*0.02 + i)*0.05);
+    });
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+
+function filterGalaxy(name) {
+  // Highlight conglomerate
+  const mapping = {'Salim Group':'salim','Djarum / BCA Group':'djarum','Sinar Mas Group':'sinarmas',
+    'Astra Group':'astra','Bakrie Group':'bakrie','Danantara / BUMN':'danantara','Prajogo Pangestu':'prajogo'};
+  const grp = mapping[name];
+  stockNodes.forEach(n=>{
+    n.material.opacity = (!grp || n.userData.g===grp) ? 1 : 0.15;
+  });
+}
+
+window.addEventListener('resize', ()=>{
+  const w = canvas.parentElement.offsetWidth;
+  const h = canvas.parentElement.offsetHeight;
+  renderer.setSize(w,h);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+});
+</script>
+</body>
+</html>
