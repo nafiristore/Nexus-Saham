@@ -173,6 +173,29 @@ footer{border-top:1px solid var(--border);padding:32px 40px;
 .footer-links a{color:var(--t3);text-decoration:none;}
 .footer-links a:hover{color:var(--blue);}
 .disclaimer-footer{font-size:10px;color:rgba(232,240,254,0.2);margin-top:8px;line-height:1.6;max-width:800px;}
+@media (max-width: 768px) {
+  nav { padding: 0 16px; height: 56px; gap: 12px; }
+  .nav-links { display: none; }
+  .nav-btn { padding: 6px 12px; font-size: 12px; }
+  .hero { padding: 80px 16px 40px; }
+  .hero-stats { gap: 20px; flex-wrap: wrap; justify-content: center; }
+  .preview-section, .features-section, .pricing-section { padding: 50px 16px; }
+  .features-grid { grid-template-columns: 1fr !important; }
+  .pricing-grid { grid-template-columns: 1fr !important; }
+  .expert-grid { grid-template-columns: 1fr 1fr !important; }
+  .mini-dashboard { grid-template-columns: 1fr !important; }
+  .mini-sidebar { display: none; }
+  .mini-main { grid-template-columns: 1fr 1fr !important; }
+  .footer-content { flex-direction: column !important; gap: 20px; }
+  .footer-links { flex-wrap: wrap; gap: 12px; }
+}
+@media (max-width: 480px) {
+  .hero-btns { flex-direction: column; align-items: center; }
+  .hero-btns a, .hero-btns button { width: 100%; text-align: center; }
+  .expert-grid { grid-template-columns: 1fr !important; }
+  .mini-main { grid-template-columns: 1fr !important; }
+  .hero-stats { gap: 16px; }
+}
 </style>
 </head>
 <body>
