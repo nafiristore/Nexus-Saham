@@ -101,6 +101,22 @@ body{background:var(--bg-primary);color:var(--text-primary);font-family:'Inter',
 /* DISCLAIMER */
 .disclaimer{font-size:10px;color:var(--text-muted);padding:14px 0;line-height:1.7;margin-top:20px;
   border-top:1px solid var(--border);}
+@media (max-width: 768px) {
+  .header { padding: 0 12px; }
+  .main { padding: 12px; }
+  .filter-bar { gap: 8px; }
+  .filter-group { width: 100%; }
+  .filter-input, .filter-select { width: 100% !important; min-width: unset !important; }
+  .results-bar { flex-direction: column; gap: 8px; align-items: flex-start; }
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 700px; }
+  .preset-tabs { gap: 6px; }
+  .preset-tab { font-size: 11px; padding: 6px 10px; }
+}
+@media (max-width: 480px) {
+  .header-title { font-size: 14px; }
+  .back-btn span { display: none; }
+}
 </style>
 </head>
 <body>
