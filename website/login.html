@@ -125,6 +125,13 @@ body{background:var(--bg);color:var(--t1);font-family:'Inter',-apple-system,sans
 .login-perks{display:flex;flex-direction:column;gap:8px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
 .perk{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--t2);}
 .perk-icon{font-size:14px;flex-shrink:0;}
+@media (max-width: 480px) {
+  .login-container { padding: 12px; }
+  .form-row { grid-template-columns: 1fr !important; }
+  .social-btns { grid-template-columns: 1fr !important; }
+  .plan-select { grid-template-columns: 1fr !important; }
+  .form-wrap { padding: 20px 16px; }
+}
 </style>
 </head>
 <body>
