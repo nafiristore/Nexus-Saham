@@ -689,6 +689,23 @@ body {
   0% { transform:translateX(0); }
   100% { transform:translateX(-50%); }
 }
+@media (max-width: 768px) {
+  nav { padding: 0 16px; height: 56px; gap: 12px; }
+  .nav-links { display: none; }
+  .nav-btn { padding: 6px 14px; font-size: 12px; }
+  .hero { padding: 80px 16px 40px; }
+  .hero-stats { gap: 24px; }
+  .preview-section { padding: 40px 16px; }
+  .features-grid { grid-template-columns: 1fr !important; }
+  .pricing-grid { grid-template-columns: 1fr !important; }
+  .footer-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 480px) {
+  .hero-title { font-size: 32px; }
+  .hero-sub { font-size: 14px; }
+  .hero-btns { flex-direction: column; align-items: center; }
+  .hero-btns a, .hero-btns button { width: 100%; text-align: center; }
+}
 </style>
 </head>
 <body>
